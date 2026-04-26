@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Respiratory Diagnosis</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #f0f2f5;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 40px 16px;
+    }
+
+    .container {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+      width: 100%;
+      max-width: 440px;
+      padding: 32px 28px;
+    }
+
+    h2 {
+      font-size: 20px;
+      font-weight: 600;
+      color: #111;
+      margin-bottom: 4px;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: #888;
+      margin-bottom: 24px;
+    }
+
+    /* Upload zone */
+    .upload-zone {
+      border: 2px dashed #d0d5dd;
+      border-radius: 12px;
+      padding: 28px 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      position: relative;
+      background: #fafafa;
+      margin-bottom: 16px;
+    }
+
+    .upload-zone:hover, .upload-zone.dragover {
+      border-color: #007bff;
+      background: #f0f7ff;
+    }
+
+    .upload-zone input[type=file] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+
+    .upload-icon { font-size: 32px; margin-bottom: 8px; }
+
+    .upload-label {
+      font-size: 14px;
+      font-weight: 500;
+      color: #333;
+      margin-bottom: 4px;
+    }
+
+    .upload-sub { font-size: 12px; color: #aaa; }
+
+    /* Preview */
+    #imgPreview {
+      width: 100%;
+      max-height: 260px;
+      object-fit: contain;
+      border-radius: 10px;
+      border: 1px solid #eee;
+      margin-bottom: 16px;
+      display: none;
+    }
+
+    .file-info {
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 12px;
+      display: none;
+      word-break: break-all;
+    }
+
+    /* Buttons */
+    .btn-primary {
+      background: #007bff;
+      color: #fff;
+      border: none;
+      padding: 13px;
+      width: 100%;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 500;
+      transition: background 0.2s, opacity 0.2s;
+      margin-bottom: 8px;
+    }
+
+    .btn-primary:hover  { background: #0069d9; }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .btn-secondary {
+      background: transparent;
+      color: #888;
+      border: 1px solid #e0e0e0;
+      padding: 10px;
+      width: 100%;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: background 0.2s;
+      display: none;
+    }
+
+    .btn-secondary:hover { background: #f5f5f5; }
+
+    /* Spinner */
+    .spinner-wrap {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 16px 0;
+      color: #555;
+      font-size: 14px;
+    }
+
+    .spinner {
+      width: 20px; height: 20px;
+      border: 2px solid #e0e0e0;
+      border-top-color: #007bff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Result */
+    #result { margin-top: 16px; display: none; }
+
+    .result-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #aaa;
+      margin-bottom: 10px;
+    }
+
+    .diagnosis-badge {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 16px;
+      border-radius: 10px;
+      margin-bottom: 14px;
+      font-weight: 600;
+      font-size: 16px;
+    }
+
+    .badge-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .badge-pneumonia { background: #fff0f0; color: #c0392b; border: 1px solid #f5c6c6; }
+    .badge-pneumonia .badge-dot { background: #c0392b; }
+
+    .badge-opacity   { background: #fff8e1; color: #b7791f; border: 1px solid #f6e6b0; }
+    .badge-opacity .badge-dot { background: #b7791f; }
+
+    .badge-normal    { background: #f0fff4; color: #276749; border: 1px solid #b2dfcc; }
+    .badge-normal .badge-dot { background: #276749; }
+
+    .badge-uncertain { background: #f5f5f5; color: #555; border: 1px solid #ddd; }
+    .badge-uncertain .badge-dot { background: #aaa; }
+
+    .conf-text {
+      font-size: 13px;
+      color: #777;
+      margin-bottom: 14px;
+    }
+
+    /* Probability bars */
+    .bars { margin-bottom: 14px; }
+
+    .bar-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .bar-name {
+      font-size: 12px;
+      color: #555;
+      width: 130px;
+      flex-shrink: 0;
+    }
+
+    .bar-track {
+      flex: 1;
+      height: 7px;
+      background: #f0f0f0;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.5s ease;
+    }
+
+    .fill-pneumonia { background: #e74c3c; }
+    .fill-opacity   { background: #f39c12; }
+    .fill-normal    { background: #27ae60; }
+
+    .bar-pct {
+      font-size: 12px;
+      color: #999;
+      width: 40px;
+      text-align: right;
+      flex-shrink: 0;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Warning */
+    .warning-box {
+      background: #fff8e1;
+      border: 1px solid #ffe082;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 12px;
+      color: #7b5800;
+      margin-bottom: 14px;
+      line-height: 1.5;
+      display: none;
+    }
+
+    /* Error */
+    .error-box {
+      background: #fff0f0;
+      border: 1px solid #ffcdd2;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: #b71c1c;
+      margin-top: 12px;
+      display: none;
+    }
+
+    /* Disclaimer */
+    .disclaimer {
+      font-size: 11px;
+      color: #bbb;
+      border-top: 1px solid #f0f0f0;
+      padding-top: 12px;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h2>Lung X-Ray Classifier</h2>
+  <p class="subtitle">EfficientNetB0 — Clinical Decision Support</p>
+
+  <!-- Upload zone -->
+  <div class="upload-zone" id="uploadZone">
+    <input type="file" id="fileInput" accept=".jpg,.jpeg,.png" />
+    <div class="upload-icon">🫁</div>
+    <p class="upload-label">Click or drag an X-ray here</p>
+    <p class="upload-sub">JPG / PNG accepted</p>
+  </div>
+
+  <p class="file-info" id="fileInfo"></p>
+  <img id="imgPreview" alt="X-ray preview" />
+
+  <button class="btn-primary" id="btnAnalyze" disabled>Analyze Image</button>
+  <button class="btn-secondary" id="btnClear">Clear</button>
+
+  <div class="spinner-wrap" id="spinner">
+    <div class="spinner"></div>
+    Analysing X-ray...
+  </div>
+
+  <div class="error-box" id="errorBox"></div>
+
+  <div id="result">
+    <p class="result-label">Diagnosis</p>
+    <div class="diagnosis-badge" id="diagBadge">
+      <span class="badge-dot"></span>
+      <span id="diagText"></span>
+    </div>
+    <p class="conf-text" id="confText"></p>
+    <div class="warning-box" id="warningBox">
+      Low confidence — result is uncertain. Refer to a radiologist for confirmation.
+    </div>
+    <div class="bars">
+      <div class="bar-row">
+        <span class="bar-name">Viral Pneumonia</span>
+        <div class="bar-track"><div class="bar-fill fill-pneumonia" id="barPneumonia" style="width:0%"></div></div>
+        <span class="bar-pct" id="pctPneumonia">0%</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-name">Lung Opacity</span>
+        <div class="bar-track"><div class="bar-fill fill-opacity" id="barOpacity" style="width:0%"></div></div>
+        <span class="bar-pct" id="pctOpacity">0%</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-name">Normal</span>
+        <div class="bar-track"><div class="bar-fill fill-normal" id="barNormal" style="width:0%"></div></div>
+        <span class="bar-pct" id="pctNormal">0%</span>
+      </div>
+    </div>
+    <p class="disclaimer">
+      For clinical decision support only. All results must be reviewed and confirmed by a qualified radiologist. Not a replacement for professional medical judgment.
+    </p>
+  </div>
+</div>
+
+<script>
+  const fileInput  = document.getElementById('fileInput');
+  const uploadZone = document.getElementById('uploadZone');
+  const imgPreview = document.getElementById('imgPreview');
+  const fileInfo   = document.getElementById('fileInfo');
+  const btnAnalyze = document.getElementById('btnAnalyze');
+  const btnClear   = document.getElementById('btnClear');
+  const spinner    = document.getElementById('spinner');
+  const result     = document.getElementById('result');
+  const errorBox   = document.getElementById('errorBox');
+
+  // BUG FIX 8: Use a configurable API URL — easy to change for deployment
+  const API_URL = 'http://127.0.0.1:8000/predict';
+
+  function formatBytes(b) {
+    if (b < 1024) return b + ' B';
+    if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
+    return (b / 1048576).toFixed(1) + ' MB';
+  }
+
+  function showPreview(file) {
+    imgPreview.src = URL.createObjectURL(file);
+    imgPreview.style.display = 'block';
+    fileInfo.textContent = `${file.name} — ${formatBytes(file.size)}`;
+    fileInfo.style.display = 'block';
+    btnAnalyze.disabled = false;
+    btnClear.style.display = 'block';
+    result.style.display = 'none';
+    errorBox.style.display = 'none';
+  }
+
+  function clearAll() {
+    fileInput.value = '';
+    imgPreview.src = '';
+    imgPreview.style.display = 'none';
+    fileInfo.style.display = 'none';
+    btnAnalyze.disabled = true;
+    btnClear.style.display = 'none';
+    result.style.display = 'none';
+    errorBox.style.display = 'none';
+  }
+
+  function showResult(data) {
+    const scores = data.all_scores;
+
+    // Probability bars
+    const op = (scores['Lung_Opacity']    * 100).toFixed(1);
+    const no = (scores['Normal']          * 100).toFixed(1);
+    const vp = (scores['Viral_Pneumonia'] * 100).toFixed(1);
+
+    document.getElementById('barOpacity').style.width   = op + '%';
+    document.getElementById('barNormal').style.width    = no + '%';
+    document.getElementById('barPneumonia').style.width = vp + '%';
+    document.getElementById('pctOpacity').textContent   = op + '%';
+    document.getElementById('pctNormal').textContent    = no + '%';
+    document.getElementById('pctPneumonia').textContent = vp + '%';
+
+    // Diagnosis badge
+    const badge   = document.getElementById('diagBadge');
+    const diagText= document.getElementById('diagText');
+    const confText= document.getElementById('confText');
+    const warning = document.getElementById('warningBox');
+
+    badge.className = 'diagnosis-badge';
+
+    if (data.uncertain) {
+      badge.classList.add('badge-uncertain');
+      diagText.textContent = 'Uncertain — refer to specialist';
+      warning.style.display = 'block';
+    } else {
+      warning.style.display = 'none';
+      const labelMap = {
+        'Viral_Pneumonia': { label: 'Viral Pneumonia', cls: 'badge-pneumonia' },
+        'Lung_Opacity'   : { label: 'Lung Opacity',    cls: 'badge-opacity'   },
+        'Normal'         : { label: 'Normal',           cls: 'badge-normal'    },
+      };
+      const mapped = labelMap[data.prediction] || { label: data.prediction, cls: 'badge-uncertain' };
+      badge.classList.add(mapped.cls);
+      diagText.textContent = mapped.label;
+    }
+
+    confText.textContent = `Confidence: ${(data.confidence * 100).toFixed(2)}%`;
+    result.style.display = 'block';
+  }
+
+  fileInput.addEventListener('change', e => {
+    if (e.target.files[0]) showPreview(e.target.files[0]);
+  });
+
+  // Drag and drop support
+  uploadZone.addEventListener('dragover', e => {
+    e.preventDefault();
+    uploadZone.classList.add('dragover');
+  });
+  uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+  uploadZone.addEventListener('drop', e => {
+    e.preventDefault();
+    uploadZone.classList.remove('dragover');
+    const f = e.dataTransfer.files[0];
+    if (f) showPreview(f);
+  });
+
+  btnClear.addEventListener('click', clearAll);
+
+  btnAnalyze.addEventListener('click', async () => {
+    if (!fileInput.files[0]) return;
+
+    btnAnalyze.disabled = true;
+    spinner.style.display = 'flex';
+    result.style.display = 'none';
+    errorBox.style.display = 'none';
+
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+
+    try {
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.detail || `Server error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      showResult(data);
+
+    } catch (err) {
+      // BUG FIX 10: Distinguish network errors from API errors
+      let msg = err.message;
+      if (msg.includes('fetch') || msg.includes('NetworkError') || msg.includes('Failed')) {
+        msg = 'Cannot connect to backend. Make sure main.py is running on port 8000.';
+      }
+      errorBox.textContent = msg;
+      errorBox.style.display = 'block';
+    } finally {
+      spinner.style.display = 'none';
+      btnAnalyze.disabled = false;
+    }
+  });
+</script>
+</body>
+</html>
